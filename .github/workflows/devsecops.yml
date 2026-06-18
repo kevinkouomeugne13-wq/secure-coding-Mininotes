@@ -1,0 +1,52 @@
+name: Pipeline DevSecOps - MiniNotes
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  security-scan:
+    name: Audit Sécurité & Secrets
+    runs-on: ubuntu-latest
+
+    steps:
+      # Étape 1 : Récupérer le code source du dépôt
+      - name: Checkout du code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Permet de scanner tout l'historique pour les secrets
+
+      # Étape 2 : Scanner le dépôt avec Trivy (Détection de secrets et vulnérabilités de code)
+      - name: Scan de sécurité Trivy (Secrets & Code)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          exit-code: '1' # Fait échouer le pipeline si une vulnérabilité majeure ou un secret est trouvé
+          severity: 'CRITICAL,HIGH'
+
+  build-and-lint:
+    name: Validation du Build & Dependances
+    runs-on: ubuntu-latest
+    needs: security-scan # S'exécute uniquement si le scan de sécurité passe
+
+    steps:
+      - name: Checkout du code
+        uses: actions/checkout@v4
+
+      - name: Configuration de Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Installation des dépendances
+        run: npm ci
+
+      - name: Audit des dépendances (NPM Audit)
+        run: npm audit --audit-level=high
+
+      - name: Vérification du Build Next.js
+        run: npm run build
