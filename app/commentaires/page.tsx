@@ -16,8 +16,8 @@ export default function CommentairesPage() {
       {comments.map((c) => (
         <div key={c.id} style={{ marginBottom: 12 }}>
           <b>{c.author} :</b>{" "}
-          {/* ⚠️ FAILLE : HTML brut injecté directement (XSS Stocké) */}
-          <span dangerouslySetInnerHTML={{ __html: c.html }} />
+          {/* ✅ CORRECTIF : Échappement natif automatique de React (Anti-XSS Stocké) */}
+          <span>{c.html}</span>
         </div>
       ))}
     </main>
