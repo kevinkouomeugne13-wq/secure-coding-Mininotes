@@ -40,8 +40,10 @@ export async function POST(req: NextRequest) {
     const { titre, contenu } = parseResult.data;
     const db = getDb();
 
-    const nextId =
-      (db("SELECT MAX(id) AS m FROM notes")[0] as { m: number }).m + 1;
+    // Typage explicite du retour Alasql pour éviter l'erreur 'any' ou d'indexation sous Next.js Build
+    const resMax = db("SELECT MAX(id) AS m FROM notes") as Array<{ m: number | null }>;
+    const maxId = resMax[0]?.m;
+    const nextId = maxId ? maxId + 1 : 1;
 
     const sql = "INSERT INTO notes VALUES (?, ?, ?, ?)";
     db(sql, [nextId, Number(sessionId), titre, contenu]);
