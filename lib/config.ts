@@ -1,3 +1,3 @@
-// ⚠️ FAILLE : un secret EN DUR dans le code
-export const SESSION_SECRET = "mn_live_8f3c1a9e2b7d4f60_PROD_DO_NOT_SHARE";
+// ✅ CORRECTIF : Le secret est maintenant chargé depuis les variables d'environnement
+export const SESSION_SECRET = process.env.SESSION_SECRET || "fallback_dev_secret_unsafe";
 export const APP_NAME = "MiniNotes";
