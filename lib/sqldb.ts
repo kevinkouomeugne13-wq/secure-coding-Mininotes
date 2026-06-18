@@ -1,30 +1,38 @@
 import alasql from "alasql";
+import bcrypt from "bcryptjs";
 
-let prete = false;
+export const runtime = "nodejs";
+
+let dbInitialized = false;
 
 export function getDb() {
-  if (!prete) {
-    alasql("CREATE TABLE IF NOT EXISTS users (id INT, email STRING, password STRING, role STRING)");
-    alasql("CREATE TABLE IF NOT EXISTS notes (id INT, userId INT, titre STRING, contenu STRING)");
-    alasql("CREATE TABLE IF NOT EXISTS comments (id INT, author STRING, html STRING)");
+  const db = alasql;
 
-    alasql("DELETE FROM users");
-    alasql("DELETE FROM notes");
-    alasql("DELETE FROM comments");
+  if (!dbInitialized) {
+    // 1. Création des tables
+    db("CREATE TABLE users (id INT, email STRING, password STRING, role STRING)");
+    db("CREATE TABLE notes (id INT, userId INT, titre STRING, contenu STRING)");
+    db("CREATE TABLE comments (id INT, author STRING, html STRING)");
 
-    // ⚠️ FAILLE : mots de passe stockés EN CLAIR
-    alasql("INSERT INTO users VALUES (1,'alice@mininotes.test','azerty123','user')");
-    alasql("INSERT INTO users VALUES (2,'bob@mininotes.test','motdepasse','user')");
-    alasql("INSERT INTO users VALUES (3,'admin@mininotes.test','admin','admin')");
+    // ✅ CORRECTIF : Génération de hashs Bcrypt robustes pour le seed (Faille B)
+    const saltRounds = 10;
+    const hashAlice = bcrypt.hashSync("azerty123", saltRounds);
+    const hashAdmin = bcrypt.hashSync("admin", saltRounds);
 
-    // chaque note appartient à un userId (1=alice, 2=bob, 3=admin)
-    alasql("INSERT INTO notes VALUES (1,1,'Liste de courses','lait, pain, cafe')");
-    alasql("INSERT INTO notes VALUES (2,2,'Idee projet','une appli de notes privees')");
-    alasql("INSERT INTO notes VALUES (3,3,'Codes admin','le code du coffre est 4271')");
+    // 2. Insertion des données de test sécurisées
+    db("INSERT INTO users VALUES (1, 'alice@mininotes.test', ?, 'user')", [hashAlice]);
+    db("INSERT INTO users VALUES (3, 'admin@mininotes.test', ?, 'admin')", [hashAdmin]);
 
-    alasql("INSERT INTO comments VALUES (1,'Alice','Super appli !')");
+    db("INSERT INTO notes VALUES (1, 1, 'Courses', 'Acheter du pain et du lait')");
+    db("INSERT INTO notes VALUES (2, 1, 'Projets', 'Finir le TP de secure coding avant ce soir')");
+    db("INSERT INTO notes VALUES (3, 3, 'Codes admin', 'le code du coffre est 4271')");
 
-    prete = true;
+    db("INSERT INTO comments VALUES (1, 'Formateur Sec', 'Excellent travail sur ce labo !')");
+    db("INSERT INTO comments VALUES (2, 'Anonyme', 'Trop cool ton site web')");
+
+    dbInitialized = true;
+    console.log("🚀 Base de données Alasql initialisée avec succès (Mots de passe hachés via Bcrypt).");
   }
-  return alasql;
+
+  return db;
 }
