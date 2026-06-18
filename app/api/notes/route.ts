@@ -10,11 +10,11 @@ export async function GET(req: NextRequest) {
   }
   const db = getDb();
 
-  // ⚠️ FAILLE : Injection SQL potentielle via le cookie de session
-  const sql = `SELECT * FROM notes WHERE userId = ${sessionId}`;
-  console.log("🔎 SQL exécuté :", sql);
+  // ✅ CORRECTIF : Requête paramétrée pour le GET
+  const sql = "SELECT * FROM notes WHERE userId = ?";
+  console.log("🔎 SQL exécuté de manière sécurisée :", sql, "avec", [sessionId]);
 
-  const rows = db(sql);
+  const rows = db(sql, [Number(sessionId)]);
   return NextResponse.json({ notes: rows });
 }
 
@@ -24,17 +24,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Non connecté" }, { status: 401 });
   }
 
-  // ⚠️ FAILLE : Pas de validation Zod ni de token anti-CSRF
   const { titre, contenu } = await req.json();
   const db = getDb();
 
   const nextId =
     (db("SELECT MAX(id) AS m FROM notes")[0] as { m: number }).m + 1;
 
-  // ⚠️ FAILLE : Injection SQL sur les entrées utilisateurs
-  const sql = `INSERT INTO notes VALUES (${nextId}, ${sessionId}, '${titre}', '${contenu}')`;
-  console.log("🔎 SQL exécuté :", sql);
-  db(sql);
+  // ✅ CORRECTIF : Requête paramétrée avec "?" pour l'INSERT (Anti-SQLi)
+  const sql = "INSERT INTO notes VALUES (?, ?, ?, ?)";
+  console.log("🔎 SQL exécuté de manière sécurisée :", sql, "avec", [nextId, sessionId, titre, contenu]);
+  
+  db(sql, [nextId, Number(sessionId), titre, contenu]);
 
   return NextResponse.json({ message: "Note créée", id: nextId });
 }
